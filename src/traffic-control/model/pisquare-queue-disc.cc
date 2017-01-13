@@ -274,7 +274,8 @@ bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
       return false;
     }
 
-  if (u > p)
+  // Apply the squared drop probability 
+  if (u > p * p)
     {
       earlyDrop = false;
     }
@@ -311,34 +312,35 @@ void PiSquareQueueDisc::CalculateP ()
   else
     {
       p = m_a * (qDelay.GetSeconds () - m_qDelayRef.GetSeconds ()) + m_b * (qDelay.GetSeconds () - m_qDelayOld.GetSeconds ());
-      if (m_dropProb < 0.001)
-        {
-          p /= 32;
-        }
-      else if (m_dropProb < 0.01)
-        {
-          p /= 8;
-        }
-      else if (m_dropProb < 0.1)
-        {
-          p /= 2;
-        }
-      else if (m_dropProb < 1)
-        {
-          p /= 0.5;
-        }
-      else if (m_dropProb < 10)
-        {
-          p /= 0.125;
-        }
-      else
-        {
-          p /= 0.03125;
-        }
-      if ((m_dropProb >= 0.1) && (p > 0.02))
-        {
-          p = 0.02;
-        }
+      // Remove the scaling 
+      // if (m_dropProb < 0.001)
+      //   {
+      //     p /= 32;
+      //   }
+      // else if (m_dropProb < 0.01)
+      //   {
+      //     p /= 8;
+      //   }
+      // else if (m_dropProb < 0.1)
+      //   {
+      //     p /= 2;
+      //   }
+      // else if (m_dropProb < 1)
+      //   {
+      //     p /= 0.5;
+      //   }
+      // else if (m_dropProb < 10)
+      //   {
+      //     p /= 0.125;
+      //   }
+      // else
+      //   {
+      //     p /= 0.03125;
+      //   }
+      // if ((m_dropProb >= 0.1) && (p > 0.02))
+      //   {
+      //     p = 0.02;
+      //   }
     }
 
   p += m_dropProb;
@@ -349,10 +351,11 @@ void PiSquareQueueDisc::CalculateP ()
     {
       p *= 0.98;
     }
-  else if (qDelay.GetSeconds () > 0.2)
-    {
-      p += 0.02;
-    }
+  // No need to tune the drop probability  
+  // else if (qDelay.GetSeconds () > 0.2)
+  //   {
+  //     p += 0.02;
+  //   }
 
   m_dropProb = (p > 0) ? p : 0;
   if (m_burstAllowance < m_tUpdate)
@@ -365,11 +368,12 @@ void PiSquareQueueDisc::CalculateP ()
     }
 
   uint32_t burstResetLimit = BURST_RESET_TIMEOUT / m_tUpdate.GetSeconds ();
-  if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && !missingInitFlag )
-    {
-      m_dqCount = -1;
-      m_avgDqRate = 0.0;
-    }
+  // Do not start a new measurement cycle 
+  // if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && !missingInitFlag )
+  //   {
+  //     m_dqCount = -1;
+  //     m_avgDqRate = 0.0;
+  //   }
   if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && (m_burstAllowance.GetSeconds () == 0))
     {
       if (m_burstState == IN_BURST_PROTECTING)
