@@ -25,8 +25,8 @@
  * Most of the comments are also ported from the same.
  */
 
-#ifndef PI2_QUEUE_DISC_H
-#define PI2_QUEUE_DISC_H
+#ifndef PISQUARE_QUEUE_DISC_H
+#define PISQUARE_QUEUE_DISC_H
 
 #include <queue>
 #include "ns3/packet.h"
@@ -50,7 +50,7 @@ class UniformRandomVariable;
  *
  * \brief Implements PIE Active Queue Management discipline
  */
-class Pi2QueueDisc : public QueueDisc
+class PiSquareQueueDisc : public QueueDisc
 {
 public:
   /**
@@ -60,14 +60,14 @@ public:
   static TypeId GetTypeId (void);
 
   /**
-   * \brief Pi2QueueDisc Constructor
+   * \brief PiSquareQueueDisc Constructor
    */
-  Pi2QueueDisc ();
+  PiSquareQueueDisc ();
 
   /**
-   * \brief Pi2QueueDisc Destructor
+   * \brief PiSquareQueueDisc Destructor
    */
-  virtual ~Pi2QueueDisc ();
+  virtual ~PiSquareQueueDisc ();
 
   /**
    * \brief Stats

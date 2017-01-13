@@ -31,92 +31,92 @@
 #include "ns3/double.h"
 #include "ns3/simulator.h"
 #include "ns3/abort.h"
-#include "pi2-queue-disc.h"
+#include "pisquare-queue-disc.h"
 #include "ns3/drop-tail-queue.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("Pi2QueueDisc");
+NS_LOG_COMPONENT_DEFINE ("PiSquareQueueDisc");
 
-NS_OBJECT_ENSURE_REGISTERED (Pi2QueueDisc);
+NS_OBJECT_ENSURE_REGISTERED (PiSquareQueueDisc);
 
-TypeId Pi2QueueDisc::GetTypeId (void)
+TypeId PiSquareQueueDisc::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::Pi2QueueDisc")
+  static TypeId tid = TypeId ("ns3::PiSquareQueueDisc")
     .SetParent<QueueDisc> ()
     .SetGroupName ("TrafficControl")
-    .AddConstructor<Pi2QueueDisc> ()
+    .AddConstructor<PiSquareQueueDisc> ()
     .AddAttribute ("Mode",
                    "Determines unit for QueueLimit",
                    EnumValue (Queue::QUEUE_MODE_PACKETS),
-                   MakeEnumAccessor (&Pi2QueueDisc::SetMode),
+                   MakeEnumAccessor (&PiSquareQueueDisc::SetMode),
                    MakeEnumChecker (Queue::QUEUE_MODE_BYTES, "QUEUE_MODE_BYTES",
                                     Queue::QUEUE_MODE_PACKETS, "QUEUE_MODE_PACKETS"))
     .AddAttribute ("MeanPktSize",
                    "Average of packet size",
                    UintegerValue (1000),
-                   MakeUintegerAccessor (&Pi2QueueDisc::m_meanPktSize),
+                   MakeUintegerAccessor (&PiSquareQueueDisc::m_meanPktSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("A",
                    "Value of alpha",
                    DoubleValue (0.125),
-                   MakeDoubleAccessor (&Pi2QueueDisc::m_a),
+                   MakeDoubleAccessor (&PiSquareQueueDisc::m_a),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("B",
                    "Value of beta",
                    DoubleValue (1.25),
-                   MakeDoubleAccessor (&Pi2QueueDisc::m_b),
+                   MakeDoubleAccessor (&PiSquareQueueDisc::m_b),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("Tupdate",
                    "Time period to calculate drop probability",
                    TimeValue (Seconds (0.03)),
-                   MakeTimeAccessor (&Pi2QueueDisc::m_tUpdate),
+                   MakeTimeAccessor (&PiSquareQueueDisc::m_tUpdate),
                    MakeTimeChecker ())
     .AddAttribute ("Supdate",
                    "Start time of the update timer",
                    TimeValue (Seconds (0)),
-                   MakeTimeAccessor (&Pi2QueueDisc::m_sUpdate),
+                   MakeTimeAccessor (&PiSquareQueueDisc::m_sUpdate),
                    MakeTimeChecker ())
     .AddAttribute ("QueueLimit",
                    "Queue limit in bytes/packets",
                    UintegerValue (25),
-                   MakeUintegerAccessor (&Pi2QueueDisc::SetQueueLimit),
+                   MakeUintegerAccessor (&PiSquareQueueDisc::SetQueueLimit),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("DequeueThreshold",
                    "Minimum queue size in bytes before dequeue rate is measured",
                    UintegerValue (10000),
-                   MakeUintegerAccessor (&Pi2QueueDisc::m_dqThreshold),
+                   MakeUintegerAccessor (&PiSquareQueueDisc::m_dqThreshold),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("QueueDelayReference",
                    "Desired queue delay",
                    TimeValue (Seconds (0.02)),
-                   MakeTimeAccessor (&Pi2QueueDisc::m_qDelayRef),
+                   MakeTimeAccessor (&PiSquareQueueDisc::m_qDelayRef),
                    MakeTimeChecker ())
     .AddAttribute ("MaxBurstAllowance",
                    "Current max burst allowance in seconds before random drop",
                    TimeValue (Seconds (0.1)),
-                   MakeTimeAccessor (&Pi2QueueDisc::m_maxBurst),
+                   MakeTimeAccessor (&PiSquareQueueDisc::m_maxBurst),
                    MakeTimeChecker ())
   ;
 
   return tid;
 }
 
-Pi2QueueDisc::Pi2QueueDisc ()
+PiSquareQueueDisc::PiSquareQueueDisc ()
   : QueueDisc ()
 {
   NS_LOG_FUNCTION (this);
   m_uv = CreateObject<UniformRandomVariable> ();
-  m_rtrsEvent = Simulator::Schedule (m_sUpdate, &Pi2QueueDisc::CalculateP, this);
+  m_rtrsEvent = Simulator::Schedule (m_sUpdate, &PiSquareQueueDisc::CalculateP, this);
 }
 
-Pi2QueueDisc::~Pi2QueueDisc ()
+PiSquareQueueDisc::~PiSquareQueueDisc ()
 {
   NS_LOG_FUNCTION (this);
 }
 
 void
-Pi2QueueDisc::DoDispose (void)
+PiSquareQueueDisc::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
   m_uv = 0;
@@ -125,28 +125,28 @@ Pi2QueueDisc::DoDispose (void)
 }
 
 void
-Pi2QueueDisc::SetMode (Queue::QueueMode mode)
+PiSquareQueueDisc::SetMode (Queue::QueueMode mode)
 {
   NS_LOG_FUNCTION (this << mode);
   m_mode = mode;
 }
 
 Queue::QueueMode
-Pi2QueueDisc::GetMode (void)
+PiSquareQueueDisc::GetMode (void)
 {
   NS_LOG_FUNCTION (this);
   return m_mode;
 }
 
 void
-Pi2QueueDisc::SetQueueLimit (uint32_t lim)
+PiSquareQueueDisc::SetQueueLimit (uint32_t lim)
 {
   NS_LOG_FUNCTION (this << lim);
   m_queueLimit = lim;
 }
 
 uint32_t
-Pi2QueueDisc::GetQueueSize (void)
+PiSquareQueueDisc::GetQueueSize (void)
 {
   NS_LOG_FUNCTION (this);
   if (GetMode () == Queue::QUEUE_MODE_BYTES)
@@ -163,22 +163,22 @@ Pi2QueueDisc::GetQueueSize (void)
     }
 }
 
-Pi2QueueDisc::Stats
-Pi2QueueDisc::GetStats ()
+PiSquareQueueDisc::Stats
+PiSquareQueueDisc::GetStats ()
 {
   NS_LOG_FUNCTION (this);
   return m_stats;
 }
 
 Time
-Pi2QueueDisc::GetQueueDelay (void)
+PiSquareQueueDisc::GetQueueDelay (void)
 {
   NS_LOG_FUNCTION (this);
   return m_qDelay;
 }
 
 int64_t
-Pi2QueueDisc::AssignStreams (int64_t stream)
+PiSquareQueueDisc::AssignStreams (int64_t stream)
 {
   NS_LOG_FUNCTION (this << stream);
   m_uv->SetStream (stream);
@@ -186,7 +186,7 @@ Pi2QueueDisc::AssignStreams (int64_t stream)
 }
 
 bool
-Pi2QueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
+PiSquareQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 {
   NS_LOG_FUNCTION (this << item);
 
@@ -221,7 +221,7 @@ Pi2QueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 }
 
 void
-Pi2QueueDisc::InitializeParams (void)
+PiSquareQueueDisc::InitializeParams (void)
 {
   // Initially queue is empty so variables are initialize to zero except m_dqCount
   m_inMeasurement = false;
@@ -235,7 +235,7 @@ Pi2QueueDisc::InitializeParams (void)
   m_stats.unforcedDrop = 0;
 }
 
-bool Pi2QueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
+bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
 {
   NS_LOG_FUNCTION (this << item << qSize);
   if (m_burstAllowance.GetSeconds () > 0)
@@ -286,7 +286,7 @@ bool Pi2QueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
   return true;
 }
 
-void Pi2QueueDisc::CalculateP ()
+void PiSquareQueueDisc::CalculateP ()
 {
   NS_LOG_FUNCTION (this);
   Time qDelay;
@@ -393,11 +393,11 @@ void Pi2QueueDisc::CalculateP ()
     }
 
   m_qDelayOld = qDelay;
-  m_rtrsEvent = Simulator::Schedule (m_tUpdate, &Pi2QueueDisc::CalculateP, this);
+  m_rtrsEvent = Simulator::Schedule (m_tUpdate, &PiSquareQueueDisc::CalculateP, this);
 }
 
 Ptr<QueueDiscItem>
-Pi2QueueDisc::DoDequeue ()
+PiSquareQueueDisc::DoDequeue ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -462,7 +462,7 @@ Pi2QueueDisc::DoDequeue ()
 }
 
 Ptr<const QueueDiscItem>
-Pi2QueueDisc::DoPeek () const
+PiSquareQueueDisc::DoPeek () const
 {
   NS_LOG_FUNCTION (this);
   if (GetInternalQueue (0)->IsEmpty ())
@@ -480,18 +480,18 @@ Pi2QueueDisc::DoPeek () const
 }
 
 bool
-Pi2QueueDisc::CheckConfig (void)
+PiSquareQueueDisc::CheckConfig (void)
 {
   NS_LOG_FUNCTION (this);
   if (GetNQueueDiscClasses () > 0)
     {
-      NS_LOG_ERROR ("Pi2QueueDisc cannot have classes");
+      NS_LOG_ERROR ("PiSquareQueueDisc cannot have classes");
       return false;
     }
 
   if (GetNPacketFilters () > 0)
     {
-      NS_LOG_ERROR ("Pi2QueueDisc cannot have packet filters");
+      NS_LOG_ERROR ("PiSquareQueueDisc cannot have packet filters");
       return false;
     }
 
@@ -512,13 +512,13 @@ Pi2QueueDisc::CheckConfig (void)
 
   if (GetNInternalQueues () != 1)
     {
-      NS_LOG_ERROR ("Pi2QueueDisc needs 1 internal queue");
+      NS_LOG_ERROR ("PiSquareQueueDisc needs 1 internal queue");
       return false;
     }
 
   if (GetInternalQueue (0)->GetMode () != m_mode)
     {
-      NS_LOG_ERROR ("The mode of the provided queue does not match the mode set on the Pi2QueueDisc");
+      NS_LOG_ERROR ("The mode of the provided queue does not match the mode set on the PiSquareQueueDisc");
       return false;
     }
 
