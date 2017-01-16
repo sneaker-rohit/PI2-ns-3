@@ -307,10 +307,6 @@ void PiSquareQueueDisc::CalculateP ()
   else
     {
       p = m_a * (qDelay.GetSeconds () - m_qDelayRef.GetSeconds ()) + m_b * (qDelay.GetSeconds () - m_qDelayOld.GetSeconds ());
-      // if ((m_dropProb >= 0.1) && (p > 0.02))
-      //   {
-      //     p = 0.02;
-      //   }
     }
 
   p += m_dropProb;
