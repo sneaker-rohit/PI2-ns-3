@@ -261,15 +261,12 @@ bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
   bool earlyDrop = true;
   double u =  m_uv->GetValue ();
 
-  if ((m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb < 0.2))
+  if (GetMode () == Queue::QUEUE_MODE_BYTES && qSize <= 2 * m_meanPktSize)
     {
       return false;
     }
-  else if (GetMode () == Queue::QUEUE_MODE_BYTES && qSize <= 2 * m_meanPktSize)
-    {
-      return false;
-    }
-  else if (GetMode () == Queue::QUEUE_MODE_PACKETS && qSize <= 2)
+  
+  if (GetMode () == Queue::QUEUE_MODE_PACKETS && qSize <= 2)
     {
       return false;
     }
@@ -310,31 +307,6 @@ void PiSquareQueueDisc::CalculateP ()
   else
     {
       p = m_a * (qDelay.GetSeconds () - m_qDelayRef.GetSeconds ()) + m_b * (qDelay.GetSeconds () - m_qDelayOld.GetSeconds ());
-      // Remove the scaling 
-      // if (m_dropProb < 0.001)
-      //   {
-      //     p /= 32;
-      //   }
-      // else if (m_dropProb < 0.01)
-      //   {
-      //     p /= 8;
-      //   }
-      // else if (m_dropProb < 0.1)
-      //   {
-      //     p /= 2;
-      //   }
-      // else if (m_dropProb < 1)
-      //   {
-      //     p /= 0.5;
-      //   }
-      // else if (m_dropProb < 10)
-      //   {
-      //     p /= 0.125;
-      //   }
-      // else
-      //   {
-      //     p /= 0.03125;
-      //   }
       // if ((m_dropProb >= 0.1) && (p > 0.02))
       //   {
       //     p = 0.02;
@@ -349,11 +321,6 @@ void PiSquareQueueDisc::CalculateP ()
     {
       p *= 0.98;
     }
-  // No need to tune the drop probability  
-  // else if (qDelay.GetSeconds () > 0.2)
-  //   {
-  //     p += 0.02;
-  //   }
 
   m_dropProb = (p > 0) ? p : 0;
   if (m_burstAllowance < m_tUpdate)
@@ -366,12 +333,6 @@ void PiSquareQueueDisc::CalculateP ()
     }
 
   uint32_t burstResetLimit = BURST_RESET_TIMEOUT / m_tUpdate.GetSeconds ();
-  // Do not start a new measurement cycle 
-  // if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && !missingInitFlag )
-  //   {
-  //     m_dqCount = -1;
-  //     m_avgDqRate = 0.0;
-  //   }
   if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && (m_burstAllowance.GetSeconds () == 0))
     {
       if (m_burstState == IN_BURST_PROTECTING)
