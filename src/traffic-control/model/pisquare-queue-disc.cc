@@ -292,7 +292,6 @@ void PiSquareQueueDisc::CalculateP ()
   NS_LOG_FUNCTION (this);
   Time qDelay;
   double p = 0.0;
-  bool missingInitFlag = false;
   if (m_avgDqRate > 0)
     {
       qDelay = Time (Seconds (GetInternalQueue (0)->GetNBytes () / m_avgDqRate));
@@ -300,7 +299,6 @@ void PiSquareQueueDisc::CalculateP ()
   else
     {
       qDelay = Time (Seconds (0));
-      missingInitFlag = true;
     }
 
   m_qDelay = qDelay;
