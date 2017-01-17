@@ -32,8 +32,6 @@
 #include "ns3/event-id.h"
 #include "ns3/random-variable-stream.h"
 
-#define BURST_RESET_TIMEOUT 1.5
-
 namespace ns3 {
 
 class TraceContainer;
