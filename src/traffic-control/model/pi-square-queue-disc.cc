@@ -92,11 +92,6 @@ TypeId PiSquareQueueDisc::GetTypeId (void)
                    TimeValue (Seconds (0.02)),
                    MakeTimeAccessor (&PiSquareQueueDisc::m_qDelayRef),
                    MakeTimeChecker ())
-    .AddAttribute ("MaxBurstAllowance",
-                   "Current max burst allowance in seconds before random drop",
-                   TimeValue (Seconds (0.1)),
-                   MakeTimeAccessor (&PiSquareQueueDisc::m_maxBurst),
-                   MakeTimeChecker ())
   ;
 
   return tid;
@@ -247,7 +242,6 @@ bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
   if (m_burstState == NO_BURST)
     {
       m_burstState = IN_BURST_PROTECTING;
-      m_burstAllowance = m_maxBurst;
     }
 
   double p = m_dropProb;

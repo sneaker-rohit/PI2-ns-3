@@ -16,17 +16,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Authors: Rohit P. Tahiliani <rohit.tahil@gmail.com>
- *          
- *          
+ *                   
  */
 
-/*
- * PORT NOTE: This code was ported from ns-2.36rc1 (queue/pie.h).
- * Most of the comments are also ported from the same.
- */
-
-#ifndef PISQUARE_QUEUE_DISC_H
-#define PISQUARE_QUEUE_DISC_H
+#ifndef PI_SQUARE_QUEUE_DISC_H
+#define PI_SQUARE_QUEUE_DISC_H
 
 #include <queue>
 #include "ns3/packet.h"
@@ -48,7 +42,7 @@ class UniformRandomVariable;
 /**
  * \ingroup traffic-control
  *
- * \brief Implements PIE Active Queue Management discipline
+ * \brief Implements PI Square queue discipline
  */
 class PiSquareQueueDisc : public QueueDisc
 {
@@ -77,16 +71,6 @@ public:
     uint32_t unforcedDrop;      //!< Early probability drops: proactive
     uint32_t forcedDrop;        //!< Drops due to queue limit: reactive
   } Stats;
-
-  /**
-   * \brief Burst types
-   */
-  enum BurstStateT
-  {
-    NO_BURST,
-    IN_BURST,
-    IN_BURST_PROTECTING,
-  };
 
   /**
    * \brief Set the operating mode of this queue.
@@ -122,7 +106,7 @@ public:
   Time GetQueueDelay (void);
 
   /**
-   * \brief Get PIE statistics after running.
+   * \brief Get PI Square statistics after running.
    *
    * \returns The drop statistics.
    */
@@ -164,13 +148,11 @@ private:
   bool DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize);
 
   /**
-   * Periodically update the drop probability based on the delay samples:
-   * not only the current delay sample but also the trend where the delay
-   * is going, up or down
+   * \brief Periodically calculate the drop probability
    */
   void CalculateP ();
 
-  Stats m_stats;                                //!< PIE statistics
+  Stats m_stats;                                //!< PI Square statistics
 
   // ** Variables supplied by user
   Queue::QueueMode m_mode;                      //!< Mode (bytes or packets)
@@ -179,18 +161,14 @@ private:
   Time m_tUpdate;                               //!< Time period after which CalculateP () is called
   Time m_qDelayRef;                             //!< Desired queue delay
   uint32_t m_meanPktSize;                       //!< Average packet size in bytes
-  Time m_maxBurst;                              //!< Maximum burst allowed before random early dropping kicks in
-  double m_a;                                   //!< Parameter to pie controller
-  double m_b;                                   //!< Parameter to pie controller
+  double m_a;                                   //!< Parameter to PI Square controller
+  double m_b;                                   //!< Parameter to PI Square controller
   uint32_t m_dqThreshold;                       //!< Minimum queue size in bytes before dequeue rate is measured
 
-  // ** Variables maintained by PIE
+  // ** Variables maintained by PI Square
   double m_dropProb;                            //!< Variable used in calculation of drop probability
   Time m_qDelayOld;                             //!< Old value of queue delay
   Time m_qDelay;                                //!< Current value of queue delay
-  Time m_burstAllowance;                        //!< Current max burst value in seconds that is allowed before random drops kick in
-  uint32_t m_burstReset;                        //!< Used to reset value of burst allowance
-  BurstStateT m_burstState;                     //!< Used to determine the current state of burst
   bool m_inMeasurement;                         //!< Indicates whether we are in a measurement cycle
   double m_avgDqRate;                           //!< Time averaged dequeue rate
   double m_dqStart;                             //!< Start timestamp of current measurement cycle
@@ -202,4 +180,3 @@ private:
 };   // namespace ns3
 
 #endif
-
