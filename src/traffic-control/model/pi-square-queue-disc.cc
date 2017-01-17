@@ -247,7 +247,7 @@ bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
       return false;
     }
 
-  // Apply the squared drop probability 
+  // Apply the squared drop probability
   if (u > p * p)
     {
       earlyDrop = false;
