@@ -16,13 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Authors: Rohit P. Tahiliani <rohit.tahil@gmail.com>
- *          
- *          
- */
-
-/*
- * PORT NOTE: This code was ported from ns-2.36rc1 (queue/pie.cc).
- * Most of the comments are also ported from the same.
+ *
  */
 
 #include "ns3/log.h"
@@ -31,7 +25,7 @@
 #include "ns3/double.h"
 #include "ns3/simulator.h"
 #include "ns3/abort.h"
-#include "pisquare-queue-disc.h"
+#include "pi-square-queue-disc.h"
 #include "ns3/drop-tail-queue.h"
 
 namespace ns3 {
@@ -154,7 +148,7 @@ PiSquareQueueDisc::GetQueueSize (void)
     }
   else
     {
-      NS_ABORT_MSG ("Unknown PIE mode.");
+      NS_ABORT_MSG ("Unknown PI Square mode.");
     }
 }
 
@@ -224,7 +218,6 @@ PiSquareQueueDisc::InitializeParams (void)
   m_dropProb = 0;
   m_avgDqRate = 0.0;
   m_dqStart = 0;
-  m_burstState = NO_BURST;
   m_qDelayOld = Time (Seconds (0));
   m_stats.forcedDrop = 0;
   m_stats.unforcedDrop = 0;
@@ -233,16 +226,6 @@ PiSquareQueueDisc::InitializeParams (void)
 bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
 {
   NS_LOG_FUNCTION (this << item << qSize);
-  if (m_burstAllowance.GetSeconds () > 0)
-    {
-      // If there is still burst_allowance left, skip random early drop.
-      return false;
-    }
-
-  if (m_burstState == NO_BURST)
-    {
-      m_burstState = IN_BURST_PROTECTING;
-    }
 
   double p = m_dropProb;
 
@@ -259,8 +242,7 @@ bool PiSquareQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
     {
       return false;
     }
-  
-  if (GetMode () == Queue::QUEUE_MODE_PACKETS && qSize <= 2)
+  else if (GetMode () == Queue::QUEUE_MODE_PACKETS && qSize <= 2)
     {
       return false;
     }
@@ -283,6 +265,7 @@ void PiSquareQueueDisc::CalculateP ()
   NS_LOG_FUNCTION (this);
   Time qDelay;
   double p = 0.0;
+  bool missingInitFlag = false;
   if (m_avgDqRate > 0)
     {
       qDelay = Time (Seconds (GetInternalQueue (0)->GetNBytes () / m_avgDqRate));
@@ -290,19 +273,13 @@ void PiSquareQueueDisc::CalculateP ()
   else
     {
       qDelay = Time (Seconds (0));
+      missingInitFlag = true;
     }
 
   m_qDelay = qDelay;
 
-  if (m_burstAllowance.GetSeconds () > 0)
-    {
-      m_dropProb = 0;
-    }
-  else
-    {
-      p = m_a * (qDelay.GetSeconds () - m_qDelayRef.GetSeconds ()) + m_b * (qDelay.GetSeconds () - m_qDelayOld.GetSeconds ());
-    }
-
+  // Calculate the drop probability
+  p = m_a * (qDelay.GetSeconds () - m_qDelayRef.GetSeconds ()) + m_b * (qDelay.GetSeconds () - m_qDelayOld.GetSeconds ());
   p += m_dropProb;
 
   // For non-linear drop in prob
@@ -313,36 +290,11 @@ void PiSquareQueueDisc::CalculateP ()
     }
 
   m_dropProb = (p > 0) ? p : 0;
-  if (m_burstAllowance < m_tUpdate)
-    {
-      m_burstAllowance =  Time (Seconds (0));
-    }
-  else
-    {
-      m_burstAllowance -= m_tUpdate;
-    }
 
-  uint32_t burstResetLimit = BURST_RESET_TIMEOUT / m_tUpdate.GetSeconds ();
-  if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && (m_burstAllowance.GetSeconds () == 0))
+  if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && !missingInitFlag )
     {
-      if (m_burstState == IN_BURST_PROTECTING)
-        {
-          m_burstState = IN_BURST;
-          m_burstReset = 0;
-        }
-      else if (m_burstState == IN_BURST)
-        {
-          m_burstReset++;
-          if (m_burstReset > burstResetLimit)
-            {
-              m_burstReset = 0;
-              m_burstState = NO_BURST;
-            }
-        }
-    }
-  else if (m_burstState == IN_BURST)
-    {
-      m_burstReset = 0;
+      m_dqCount = -1;
+      m_avgDqRate = 0.0;
     }
 
   m_qDelayOld = qDelay;
