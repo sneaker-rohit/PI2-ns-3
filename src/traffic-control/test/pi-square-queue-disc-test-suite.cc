@@ -19,20 +19,24 @@
  *
  */
 
-#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/point-to-point-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/traffic-control-module.h"
+#include "ns3/test.h"
+#include "ns3/pi-square-queue-disc.h"
+#include "ns3/drop-tail-queue.h"
+#include "ns3/uinteger.h"
+#include "ns3/string.h"
+#include "ns3/double.h"
+#include "ns3/log.h"
+#include "ns3/simulator.h"
 
 using namespace ns3;
 
-class PiSquareQueueDiscTestItem : public QueueDiscItem {
+class PiSquareQueueDiscTestItem : public QueueDiscItem
+{
 public:
   PiSquareQueueDiscTestItem (Ptr<Packet> p, const Address & addr, uint16_t protocol);
   virtual ~PiSquareQueueDiscTestItem ();
   virtual void AddHeader (void);
+  virtual bool Mark(void);
 
 private:
   PiSquareQueueDiscTestItem ();
@@ -54,6 +58,12 @@ PiSquareQueueDiscTestItem::AddHeader (void)
 {
 }
 
+bool
+PiSquareQueueDiscTestItem::Mark (void)
+{
+  return false;
+}
+
 class PiSquareQueueDiscTestCase : public TestCase
 {
 public:
@@ -62,11 +72,13 @@ public:
 private:
   void Enqueue (Ptr<PiSquareQueueDisc> queue, uint32_t size, uint32_t nPkt);
   void EnqueueWithDelay (Ptr<PiSquareQueueDisc> queue, uint32_t size, uint32_t nPkt);
+  void Dequeue (Ptr<PiSquareQueueDisc> queue, uint32_t nPkt);
+  void DequeueWithDelay (Ptr<PiSquareQueueDisc> queue, double delay, uint32_t nPkt);
   void RunPiSquareTest (StringValue mode);
 };
 
 PiSquareQueueDiscTestCase::PiSquareQueueDiscTestCase ()
-  : TestCase ("Sanity check on the PI Square queue disc implementation")
+  : TestCase ("Sanity check on the pi square queue implementation")
 {
 }
 
@@ -74,35 +86,30 @@ void
 PiSquareQueueDiscTestCase::RunPiSquareTest (StringValue mode)
 {
   uint32_t pktSize = 0;
+
   // 1 for packets; pktSize for bytes
   uint32_t modeSize = 1;
-  uint32_t qSize = 8;
+
+  uint32_t qSize = 300;
   Ptr<PiSquareQueueDisc> queue = CreateObject<PiSquareQueueDisc> ();
 
-  // test 1: simple enqueue/dequeue with no drops
+
+  // test 1: simple enqueue/dequeue with defaults, no drops
   NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
                          "Verify that we can actually set the attribute Mode");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", DoubleValue (qSize)), true,
-                         "Verify that we can actually set the attribute QueueLimit");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("A", DoubleValue (0.125)), true,
-                         "Verify that we can actually set the attribute A");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("B", DoubleValue (1.25)), true,
-                         "Verify that we can actually set the attribute B");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MeanPktSize", UintegerValue (1000)), true,
-                         "Verify that we can actually set the attribute MeanPktSize");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueRef", DoubleValue (4)), true,
-                         "Verify that we can actually set the attribute QueueRef");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("W", DoubleValue (125)), true,
-                         "Verify that we can actually set the attribute W");
 
   Address dest;
 
   if (queue->GetMode () == Queue::QUEUE_MODE_BYTES)
     {
-      pktSize = 500;
+      // pktSize should be same as MeanPktSize to avoid performance gap between byte and packet mode
+      pktSize = 1000;
       modeSize = pktSize;
-      queue->SetQueueLimit (qSize * modeSize);
+      qSize = qSize * modeSize;
     }
+
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", UintegerValue (qSize)), true,
+                         "Verify that we can actually set the attribute QueueLimit");
 
   Ptr<Packet> p1, p2, p3, p4, p5, p6, p7, p8;
   p1 = Create<Packet> (pktSize);
@@ -154,57 +161,133 @@ PiSquareQueueDiscTestCase::RunPiSquareTest (StringValue mode)
   item = queue->Dequeue ();
   NS_TEST_EXPECT_MSG_EQ ((item == 0), true, "There are really no packets in there");
 
-  struct d {
-    uint32_t test2;
-    uint32_t test3;
-  } drop;
 
-
-  // test 2: default values for PI parameters
+  // test 2: more data with defaults, unforced drops but no forced drops
   queue = CreateObject<PiSquareQueueDisc> ();
-  qSize = 300 * modeSize;
+  pktSize = 1000;  // pktSize != 0 because DequeueThreshold always works in bytes
   NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
                          "Verify that we can actually set the attribute Mode");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MeanPktSize", UintegerValue (pktSize)), true,
-                         "Verify that we can actually set the attribute MeanPktSize");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueRef", DoubleValue (50)), true,
-                         "Verify that we can actually set the attribute QueueRef");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", DoubleValue (qSize)), true,
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", UintegerValue (qSize)), true,
                          "Verify that we can actually set the attribute QueueLimit");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("W", DoubleValue (170)), true,
-                         "Verify that we can actually set the attribute W");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("A", DoubleValue (0.125)), true,
+                         "Verify that we can actually set the attribute A");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("B", DoubleValue (1.25)), true,
+                         "Verify that we can actually set the attribute B");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Tupdate", TimeValue (Seconds (0.03))), true,
+                         "Verify that we can actually set the attribute Tupdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Supdate", TimeValue (Seconds (0.0))), true,
+                         "Verify that we can actually set the attribute Supdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("DequeueThreshold", UintegerValue (10000)), true,
+                         "Verify that we can actually set the attribute DequeueThreshold");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueDelayReference", TimeValue (Seconds (0.02))), true,
+                         "Verify that we can actually set the attribute QueueDelayReference");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MaxBurstAllowance", TimeValue (Seconds (0.1))), true,
+                         "Verify that we can actually set the attribute MaxBurstAllowance");
   queue->Initialize ();
-  EnqueueWithDelay (queue, pktSize, 300);
-  Simulator::Stop (Seconds (40));
+  EnqueueWithDelay (queue, pktSize, 400);
+  DequeueWithDelay (queue, 0.012, 400);
+  Simulator::Stop (Seconds (8.0));
   Simulator::Run ();
   PiSquareQueueDisc::Stats st = StaticCast<PiSquareQueueDisc> (queue)->GetStats ();
-  drop.test2 = st.unforcedDrop;
-  NS_TEST_EXPECT_MSG_NE (drop.test2, 0, "There should be some unforced drops");
+  uint32_t test2 = st.unforcedDrop;
+  NS_TEST_EXPECT_MSG_NE (test2, 0, "There should some unforced drops");
+  NS_TEST_EXPECT_MSG_EQ (st.forcedDrop, 0, "There should zero forced drops");
 
 
-  // test 3: high value of W
+  // test 3: same as test 2, but with higher QueueDelayReference
   queue = CreateObject<PiSquareQueueDisc> ();
-  qSize = 300 * modeSize;
   NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
                          "Verify that we can actually set the attribute Mode");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MeanPktSize", UintegerValue (pktSize)), true,
-                         "Verify that we can actually set the attribute MeanPktSize");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueRef", DoubleValue (50)), true,
-                         "Verify that we can actually set the attribute QueueRef");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", DoubleValue (qSize)), true,
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", UintegerValue (qSize)), true,
                          "Verify that we can actually set the attribute QueueLimit");
-  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("W", DoubleValue (500)), true,
-                         "Verify that we can actually set the attribute W");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("A", DoubleValue (0.125)), true,
+                         "Verify that we can actually set the attribute A");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("B", DoubleValue (1.25)), true,
+                         "Verify that we can actually set the attribute B");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Tupdate", TimeValue (Seconds (0.03))), true,
+                         "Verify that we can actually set the attribute Tupdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Supdate", TimeValue (Seconds (0.0))), true,
+                         "Verify that we can actually set the attribute Supdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("DequeueThreshold", UintegerValue (10000)), true,
+                         "Verify that we can actually set the attribute DequeueThreshold");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueDelayReference", TimeValue (Seconds (0.08))), true,
+                         "Verify that we can actually set the attribute QueueDelayReference");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MaxBurstAllowance", TimeValue (Seconds (0.1))), true,
+                         "Verify that we can actually set the attribute MaxBurstAllowance");
   queue->Initialize ();
-  EnqueueWithDelay (queue, pktSize, 300);
-  Simulator::Stop (Seconds (40));
+  EnqueueWithDelay (queue, pktSize, 400);
+  DequeueWithDelay (queue, 0.012, 400);
+  Simulator::Stop (Seconds (8.0));
   Simulator::Run ();
   st = StaticCast<PiSquareQueueDisc> (queue)->GetStats ();
-  drop.test3 = st.unforcedDrop;
-  NS_TEST_EXPECT_MSG_GT (drop.test3, drop.test2, "Test 3 should have more unforced drops than Test 2");
+  uint32_t test3 = st.unforcedDrop;
+  NS_TEST_EXPECT_MSG_LT (test3, test2, "Test 3 should have less unforced drops than test 2");
+  NS_TEST_EXPECT_MSG_EQ (st.forcedDrop, 0, "There should zero forced drops");
+
+
+  // test 4: same as test 2, but with lesser dequeue rate
+  queue = CreateObject<PiSquareQueueDisc> ();
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
+                         "Verify that we can actually set the attribute Mode");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", UintegerValue (qSize)), true,
+                         "Verify that we can actually set the attribute QueueLimit");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("A", DoubleValue (0.125)), true,
+                         "Verify that we can actually set the attribute A");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("B", DoubleValue (1.25)), true,
+                         "Verify that we can actually set the attribute B");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Tupdate", TimeValue (Seconds (0.03))), true,
+                         "Verify that we can actually set the attribute Tupdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Supdate", TimeValue (Seconds (0.0))), true,
+                         "Verify that we can actually set the attribute Supdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("DequeueThreshold", UintegerValue (10000)), true,
+                         "Verify that we can actually set the attribute DequeueThreshold");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueDelayReference", TimeValue (Seconds (0.02))), true,
+                         "Verify that we can actually set the attribute QueueDelayReference");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MaxBurstAllowance", TimeValue (Seconds (0.1))), true,
+                         "Verify that we can actually set the attribute MaxBurstAllowance");
+  queue->Initialize ();
+  EnqueueWithDelay (queue, pktSize, 400);
+  DequeueWithDelay (queue, 0.015, 400); // delay between two successive dequeue events is increased
+  Simulator::Stop (Seconds (8.0));
+  Simulator::Run ();
+  st = StaticCast<PiSquareQueueDisc> (queue)->GetStats ();
+  uint32_t test4 = st.unforcedDrop;
+  NS_TEST_EXPECT_MSG_GT (test4, test2, "Test 4 should have more unforced drops than test 2");
+  NS_TEST_EXPECT_MSG_EQ (st.forcedDrop, 0, "There should zero forced drops");
+
+
+  // test 5: same dequeue rate as test 4, but with higher Tupdate
+  queue = CreateObject<PiSquareQueueDisc> ();
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Mode", mode), true,
+                         "Verify that we can actually set the attribute Mode");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueLimit", UintegerValue (qSize)), true,
+                         "Verify that we can actually set the attribute QueueLimit");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("A", DoubleValue (0.125)), true,
+                         "Verify that we can actually set the attribute A");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("B", DoubleValue (1.25)), true,
+                         "Verify that we can actually set the attribute B");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Tupdate", TimeValue (Seconds (0.08))), true,
+                         "Verify that we can actually set the attribute Tupdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("Supdate", TimeValue (Seconds (0.0))), true,
+                         "Verify that we can actually set the attribute Supdate");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("DequeueThreshold", UintegerValue (10000)), true,
+                         "Verify that we can actually set the attribute DequeueThreshold");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("QueueDelayReference", TimeValue (Seconds (0.02))), true,
+                         "Verify that we can actually set the attribute QueueDelayReference");
+  NS_TEST_EXPECT_MSG_EQ (queue->SetAttributeFailSafe ("MaxBurstAllowance", TimeValue (Seconds (0.1))), true,
+                         "Verify that we can actually set the attribute MaxBurstAllowance");
+  queue->Initialize ();
+  EnqueueWithDelay (queue, pktSize, 400);
+  DequeueWithDelay (queue, 0.015, 400);
+  Simulator::Stop (Seconds (8.0));
+  Simulator::Run ();
+  st = StaticCast<PiSquareQueueDisc> (queue)->GetStats ();
+  uint32_t test5 = st.unforcedDrop;
+  NS_TEST_EXPECT_MSG_LT (test5, test4, "Test 5 should have less unforced drops than test 4");
+  NS_TEST_EXPECT_MSG_EQ (st.forcedDrop, 0, "There should zero forced drops");
 }
 
-void 
+void
 PiSquareQueueDiscTestCase::Enqueue (Ptr<PiSquareQueueDisc> queue, uint32_t size, uint32_t nPkt)
 {
   Address dest;
@@ -214,16 +297,33 @@ PiSquareQueueDiscTestCase::Enqueue (Ptr<PiSquareQueueDisc> queue, uint32_t size,
     }
 }
 
-void 
+void
 PiSquareQueueDiscTestCase::EnqueueWithDelay (Ptr<PiSquareQueueDisc> queue, uint32_t size, uint32_t nPkt)
 {
   Address dest;
-  double delay = 0.1;
-  for (uint32_t i=0;i<nPkt;i++)
-  {
-      Simulator::Schedule (Time (Seconds ((i + 1) * delay)), &PiSquareQueueDiscTestCase::Enqueue,this,queue,size, 1);
-  }
+  double delay = 0.01;  // enqueue packets with delay
+  for (uint32_t i = 0; i < nPkt; i++)
+    {
+      Simulator::Schedule (Time (Seconds ((i + 1) * delay)), &PiSquareQueueDiscTestCase::Enqueue, this, queue, size, 1);
+    }
+}
 
+void
+PiSquareQueueDiscTestCase::Dequeue (Ptr<PiSquareQueueDisc> queue, uint32_t nPkt)
+{
+  for (uint32_t i = 0; i < nPkt; i++)
+    {
+      Ptr<QueueDiscItem> item = queue->Dequeue ();
+    }
+}
+
+void
+PiSquareQueueDiscTestCase::DequeueWithDelay (Ptr<PiSquareQueueDisc> queue, double delay, uint32_t nPkt)
+{
+  for (uint32_t i = 0; i < nPkt; i++)
+    {
+      Simulator::Schedule (Time (Seconds ((i + 1) * delay)), &PiSquareQueueDiscTestCase::Dequeue, this, queue, 1);
+    }
 }
 
 void
@@ -242,4 +342,4 @@ public:
   {
     AddTestCase (new PiSquareQueueDiscTestCase (), TestCase::QUICK);
   }
-} g_piSquareQueueTestSuite;
+} g_pieSquareQueueTestSuite;
