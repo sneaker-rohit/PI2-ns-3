@@ -66,10 +66,10 @@ Validation
 
 The PI2 model is tested using :cpp:class:`PiSquareQueueDiscTestSuite` class defined in `src/traffic-control/test/pi-square-queue-disc-test-suite.cc`. The suite includes 4 test cases:
 
-* Test 1: enqueue/dequeue with no drops and makes sure that PI2 attributes can be set correctly.
-* Test 2: default values for PI2 parameters
-* Test 3: higher increment value for Pmark
-* Test 4: lesser time interval for updating Pmark
+* Test 1: simple enqueue/dequeue with defaults, no drops
+* Test 2: more data with defaults, unforced drops but no forced drops
+* Test 3: same as test 2, but with higher QueueDelayReference
+* Test 4: same as test 2, but with lesser dequeue rate
 
 The test suite can be run using the following commands: 
 
