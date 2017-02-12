@@ -4,7 +4,7 @@ You can find the Implementation for AQM PI2 [1] In ns-3 in this repository. PI2 
 
 # Reproduce simulation results as presented in paper
 
-### Prerequisites ###       
+### Prerequisites       
 1. ns-3.26 or higher. It is necessary that the ns-3 version you use has PIE Queue Disc available. PIE has been made available since 3.26 release.#     
 
 
