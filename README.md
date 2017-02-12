@@ -1,10 +1,10 @@
 # Implementation of PI2 AQM in ns-3
 
-You can find the Implementation for AQM PI2 [1] In ns-3 in this repository. PI2 with it’s simple design is less expensive in computation and achieves no worse or in some cases better responsiveness and stability in comparison to PIE [2]. bbbbb
+You can find the Implementation for AQM PI2 [1] In ns-3 in this repository. PI2 offers a simple design and achieves no worse or in some cases better responsiveness and stability in comparison to PIE [2].
 
 # Reproduce simulation results as presented in paper
 
-### Prerequisites       
+### Prerequisites    
 1. ns-3.26 or higher. It is necessary that the ns-3 version you use has PIE Queue Disc available. PIE has been made available since 3.26 release.#     
 
 
