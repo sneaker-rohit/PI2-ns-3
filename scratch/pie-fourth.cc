@@ -1,5 +1,5 @@
 /*
- * This script simulates light TCP traffic for PIE evaluation
+ * This script simulates 20 TCP flows for PIE evaluation
  * Authors: Rohit P. Tahiliani, Hitesh Tewari
  * Trinity College Dublin
 */
@@ -51,10 +51,10 @@ int main (int argc, char *argv[])
   LogComponentEnable ("PieQueueDisc", LOG_LEVEL_INFO);
 
   std::string bottleneckBandwidth = "10Mbps";
-  std::string bottleneckDelay = "50ms";
+  std::string bottleneckDelay = "38ms";
 
   std::string accessBandwidth = "10Mbps";
-  std::string accessDelay = "5ms";
+  std::string accessDelay = "1ms";
 
   NodeContainer source;
   source.Create (20);

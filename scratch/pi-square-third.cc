@@ -1,5 +1,5 @@
 /*
- * This script simulates light TCP traffic for PI Square evaluation
+ * This script simulates a mix of TCP and UDP traffic for PI Square evaluation
  * Authors: Rohit P. Tahiliani, Hitesh Tewari
  * Trinity College Dublin
 */
@@ -26,7 +26,7 @@ void CheckQueueDel (Ptr<QueueDisc> queue)
 {
   double qDel = StaticCast<PiSquareQueueDisc> (queue)->GetQueueDelay ().GetSeconds ();
   // check queue delay every 30ms
-  Simulator::Schedule (Seconds (1), &CheckQueueDel, queue);
+  Simulator::Schedule (Seconds (0.03), &CheckQueueDel, queue);
 
   std::ofstream fPlotQueueDel (filePlotQueueDel.str ().c_str (), std::ios::out | std::ios::app);
   fPlotQueueDel << Simulator::Now ().GetSeconds () << " " << (qDel * 1000) << std::endl;
@@ -51,10 +51,10 @@ int main (int argc, char *argv[])
   LogComponentEnable ("PiSquareQueueDisc", LOG_LEVEL_INFO);
 
   std::string bottleneckBandwidth = "10Mbps";
-  std::string bottleneckDelay = "50ms";
+  std::string bottleneckDelay = "38ms";
 
   std::string accessBandwidth = "10Mbps";
-  std::string accessDelay = "5ms";
+  std::string accessDelay = "1ms";
 
   NodeContainer source;
   source.Create (5);

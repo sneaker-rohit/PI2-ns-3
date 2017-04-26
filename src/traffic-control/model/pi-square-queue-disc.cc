@@ -53,12 +53,12 @@ TypeId PiSquareQueueDisc::GetTypeId (void)
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("A",
                    "Value of alpha",
-                   DoubleValue (0.125),
+                   DoubleValue (0.3125),
                    MakeDoubleAccessor (&PiSquareQueueDisc::m_a),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("B",
                    "Value of beta",
-                   DoubleValue (1.25),
+                   DoubleValue (3.125),
                    MakeDoubleAccessor (&PiSquareQueueDisc::m_b),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("Tupdate",
